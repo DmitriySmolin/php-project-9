@@ -1,0 +1,5 @@
+/vendor/
+/.idea/
+.phpunit.cache/
+/build/
+phpunit.xml.bak
