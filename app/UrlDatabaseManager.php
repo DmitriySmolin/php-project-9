@@ -2,6 +2,8 @@
 
 namespace Database;
 
+use Carbon\Carbon;
+use DiDom\Document;
 use Exception;
 use PDO;
 
@@ -17,16 +19,41 @@ class UrlDatabaseManager
         $this->pdoInstance = $pdoInstance;
     }
 
-    public function createTables(): static
+    public function createUrlsTable(): static
     {
-        $sqlQuery = 'CREATE TABLE urls (
-            id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            name varchar(255),
-            created_at timestamp
-        );';
+        $sqlQuery = 'CREATE TABLE IF NOT EXISTS urls (
+               id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+               name varchar(255),
+               created_at timestamp
+               )';
 
-        $this->executeQuery($sqlQuery);
+        $this->pdoInstance->prepare($sqlQuery)->execute();
+
         return $this;
+    }
+
+    public function createUrlChecksTable(): static
+    {
+        $sqlQuery = 'CREATE TABLE IF NOT EXISTS url_checks (
+               id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+               url_id bigint REFERENCES urls (id),
+               status_code int,
+               h1 varchar(255),
+               title varchar(255),
+               description varchar(255),
+               created_at timestamp
+              )';
+
+        $this->pdoInstance->prepare($sqlQuery)->execute();
+
+        return $this;
+    }
+
+    public function insertUrl($urlName): void
+    {
+        $currentDateTime = Carbon::now();
+        $sqlQuery = 'INSERT INTO urls (name, created_at) VALUES (:name, :created_at)';
+        $this->pdoInstance->prepare($sqlQuery)->execute([':name' => $urlName, ':created_at' => $currentDateTime]);
     }
 
     public function tableExists($tableName): bool
@@ -43,52 +70,69 @@ class UrlDatabaseManager
     public function urlExists($name): bool
     {
         $sqlQuery = 'SELECT * FROM urls WHERE name = :name';
-        $queryResult = $this->fetchSingleRow($sqlQuery, [':name' => $name]);
-        return $queryResult !== false;
+        $statement = $this->pdoInstance->prepare($sqlQuery);
+        $statement->execute([':name' => $name]);
+        return $statement->rowCount() > 0;
     }
 
-    public function getUrlById($urlName): mixed
+    public function getUrlByName($urlName): mixed
     {
         $sqlQuery = 'SELECT id FROM urls WHERE name = :name';
-        $queryResult = $this->fetchSingleRow($sqlQuery, [':name' => $urlName]);
-        return $queryResult['id'] ?? null;
+        $statement = $this->pdoInstance->prepare($sqlQuery);
+        $statement->execute([':name' => $urlName]);
+        $result = $statement->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result['id'] : null;
     }
 
-    public function insertUrl($urlName, $creationDate): void
-    {
-        $sqlQuery = 'INSERT INTO urls (name, created_at) VALUES (:name, :created_at)';
-        $this->executeQuery($sqlQuery, [':name' => $urlName, ':created_at' => $creationDate]);
-    }
-
-    public function selectUrlById($id)
+    public function getUrlById($id)
     {
         $sqlQuery = "SELECT * FROM urls WHERE id = :id";
-        return $this->fetchSingleRow($sqlQuery, [':id' => $id]);
+        $statement = $this->pdoInstance->prepare($sqlQuery);
+        $statement->execute([':id' => $id]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function selectAllUrls()
+    public function getAllUrls()
     {
         $sqlQuery = "SELECT * FROM urls ORDER BY created_at DESC";
-        return $this->fetchAllRows($sqlQuery);
+        $statement = $this->pdoInstance->query($sqlQuery);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    private function executeQuery($sqlQuery, $params = []): void
+    public function insertCheckUrl($urlId, $resUrl): void
     {
-        $pdoQuery = $this->pdoInstance->prepare($sqlQuery);
-        $pdoQuery->execute($params);
+        $currentDateTime = Carbon::now();
+
+        $sql = "INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) 
+        VALUES (:url_id, :status_code, :h1, :title, :description, :created_at)";
+        $statement = $this->pdoInstance->prepare($sql);
+
+        $statusCode = $resUrl->getStatusCode();
+        $body = $resUrl->getBody()->getContents();
+        $document = new Document($body);
+
+        $h1 = $document->has('h1') ? $document->find('h1')[0]->text() : null;
+        $title = $document->has('title') ? $document->find('title')[0]->text() : null;
+        $description = $document->has('meta[name=description]')
+            ? $document->find('meta[name=description]')[0]
+                ->attr('content') : null;
+
+        $statement->execute([
+            ':description' => $description,
+            ':title' => $title,
+            ':h1' => $h1,
+            ':url_id' => $urlId,
+            ':status_code' => $statusCode,
+            ':created_at' => $currentDateTime,
+        ]);
     }
 
-    private function fetchSingleRow($sqlQuery, $params = [])
+    public function getCheckUrlById($id)
     {
-        $pdoQuery = $this->pdoInstance->prepare($sqlQuery);
-        $pdoQuery->execute($params);
-        return $pdoQuery->fetch(PDO::FETCH_ASSOC);
-    }
-
-    private function fetchAllRows($sqlQuery, $params = [])
-    {
-        $pdoQuery = $this->pdoInstance->prepare($sqlQuery);
-        $pdoQuery->execute($params);
-        return $pdoQuery->fetchAll(PDO::FETCH_ASSOC);
+        $sql = "SELECT * FROM url_checks WHERE url_id = :id
+        ORDER BY url_checks.id DESC";
+        $statement = $this->pdoInstance->prepare($sql);
+        $statement->execute([':id' => $id]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 }

@@ -1,19 +1,20 @@
 <?php
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Flash\Messages;
 use Slim\Views\PhpRenderer;
 use Database\DatabaseConnection;
 use Database\UrlDatabaseManager;
-use Carbon\Carbon;
 use Valitron\Validator;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $database = new DatabaseConnection();
 $pdo = $database->getConnection();
-$tableCreator = new UrlDatabaseManager($pdo);
+$tableManager = new UrlDatabaseManager($pdo);
 
 $container = new Container();
 $container->set('renderer', function () {
@@ -29,13 +30,15 @@ $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
 
 $router = $app->getRouteCollector()->getRouteParser();
-$currentDateTime = Carbon::now();
 session_start();
 
-$app->get('/', function ($req, $res) use ($tableCreator) {
+$app->get('/', function ($req, $res) use ($tableManager) {
 
-    if (!$tableCreator->tableExists('urls')) {
-        $tableCreator->createTables();
+    if (!$tableManager->tableExists('urls')) {
+        $tableManager->createUrlsTable();
+    }
+    if (!$tableManager->tableExists('url_checks')) {
+        $tableManager->createUrlChecksTable();
     }
 
     $params = [
@@ -45,7 +48,7 @@ $app->get('/', function ($req, $res) use ($tableCreator) {
     return $this->get('renderer')->render($res, 'index.phtml', $params);
 })->setName('home');
 
-$app->post('/urls', function ($req, $res) use ($router, $tableCreator, $currentDateTime) {
+$app->post('/urls', function ($req, $res) use ($router, $tableManager) {
 
     $urls = $req->getParsedBodyParam('urls');
     $validator = new Validator($urls);
@@ -65,39 +68,58 @@ $app->post('/urls', function ($req, $res) use ($router, $tableCreator, $currentD
 
     $flashMessage = 'Страница уже существует';
 
-    if (!$tableCreator->urlExists($urlName)) {
+    if (!$tableManager->urlExists($urlName)) {
         $flashMessage = 'Страница созданна';
-        $tableCreator->insertUrl($urlName, $currentDateTime);
+        $tableManager->insertUrl($urlName);
     }
 
     $this->get('flash')->addMessage('success', $flashMessage);
 
-    $id = $tableCreator->getUrlById($urlName);
+    $id = $tableManager->getUrlByName($urlName);
     $url = $router->urlFor('urls', ['id' => $id]);
 
     return $res->withRedirect($url);
 });
 
-$app->get('/urls', function ($req, $res) use ($tableCreator) {
+$app->get('/urls', function ($req, $res) use ($tableManager) {
 
-    $urls = $tableCreator->selectAllUrls();
+    $urls = $tableManager->getAllUrls();
     $params = [
         'urls' => $urls
     ];
     return $this->get('renderer')->render($res, 'urls.phtml', $params);
-});
+})->setName('urls');
 
-$app->get('/urls/{id}', function ($req, $res, array $args) use ($tableCreator) {
+$app->get('/urls/{id}', function ($req, $res, array $args) use ($tableManager) {
 
     $id = $args['id'];
-    $url = $tableCreator->selectUrlById($id);
+    $url = $tableManager->getUrlById($id);
+    $dataChecks = $tableManager->getCheckUrlById($id);
 
     $messages = $this->get('flash')->getMessages();
     $params = [
         'url' => $url,
-        'flash' => $messages
+        'flash' => $messages,
+        'checks' => $dataChecks
     ];
     return $this->get('renderer')->render($res, 'url.phtml', $params);
-})->setName('urls');
+})->setName('url');
+
+$app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tableManager, $router) {
+    $id = $args['url_id'];
+    $client = new Client();
+
+    $urlName = $tableManager->getUrlById($id)['name'];
+
+    try {
+        $response = $client->request('GET', $urlName);
+        $tableManager->insertCheckUrl($id, $response);
+        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+    } catch (ClientException $e) {
+        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
+    }
+    $url = $router->urlFor('url', ['id' => $id]);
+    return $res->withRedirect($url, 302);
+});
 
 $app->run();
