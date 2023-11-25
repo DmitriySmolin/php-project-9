@@ -120,6 +120,6 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
     }
     $url = $router->urlFor('url', ['id' => $id]);
     return $res->withRedirect($url, 302);
-});
+})->setName('checkUrl');
 
 $app->run();
