@@ -5,7 +5,7 @@
 
 ## About
 
-A difference calculator is a program that determines the difference between two data structures
+A page analyzer is a program that analyzes specified pages for SEO suitability
 
 ## Requirements
 
@@ -16,7 +16,7 @@ A difference calculator is a program that determines the difference between two 
 ## Setup
 
 ```sh
-$ git clone https://github.com/DmitriySmolin/php-project-48.git
+$ git clone https://github.com/DmitriySmolin/php-project-9.git
 
 $ cd php-project-9
 
