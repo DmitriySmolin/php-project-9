@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <title>Анализатор страниц</title>
 </head>
 <body class="min-vh-100 d-flex flex-column">
@@ -32,27 +33,27 @@
 </header>
 <main class="flex-grow-1">
     <div class="container-lg mt-3">
-        <h1>Сайт: <?=$url['name']?></h1>
+        <h1>Сайт: <?= $url['name'] ?></h1>
         <div class="table-responsive">
             <table class="table table-bordered table-hover text-nowrap" data-test="url">
                 <tbody>
                 <tr>
                     <td>ID</td>
-                    <td><?=$url['id']?></td>
+                    <td><?= $url['id'] ?></td>
                 </tr>
                 <tr>
                     <td>Имя</td>
-                    <td><?=$url['name']?></td>
+                    <td><?= $url['name'] ?></td>
                 </tr>
                 <tr>
                     <td>Дата создания</td>
-                    <td><?=$url['created_at']?></td>
+                    <td><?= $url['created_at'] ?></td>
                 </tr>
                 </tbody>
             </table>
         </div>
         <h2 class="mt-5 mb-3">Проверки</h2>
-        <form action="/urls/<?=$url['id']?>/checks" method="post" >
+        <form action="/urls/<?= $url['id'] ?>/checks" method="post">
             <input type="submit" class="btn btn-primary" value="Запустить проверку">
         </form>
         <table class="table table-bordered table-hover" data-test="checks">
@@ -65,16 +66,16 @@
                 <th>description</th>
                 <th>Дата создания</th>
             </tr>
-            <?php foreach($checks as $check): ?>
+            <?php foreach ($checks as $check): ?>
                 <tr>
-                    <td><?=$check['id']?></td>
-                    <td><?=$check['status_code']?></td>
-                    <td><?=$check['h1']?></td>
-                    <td><?=$check['title']?></td>
-                    <td><?=$check['description']?></td>
-                    <td><?=$check['created_at']?></td>
+                    <td><?= $check['id'] ?></td>
+                    <td><?= $check['status_code'] ?></td>
+                    <td><?= $check['h1'] ?></td>
+                    <td><?= $check['title'] ?></td>
+                    <td><?= $check['description'] ?></td>
+                    <td><?= $check['created_at'] ?></td>
                 </tr>
-            <?php endforeach?>
+            <?php endforeach ?>
             </tbody>
         </table>
     </div>
@@ -86,6 +87,12 @@
         </div>
     </div>
 </footer>
-<div at-magnifier-wrapper=""><div class="at-theme-dark"><div class="at-base notranslate" translate="no"><div class="Z1-AJ" style="top: 0px; left: 0px;"></div></div></div></div>
+<div at-magnifier-wrapper="">
+    <div class="at-theme-dark">
+        <div class="at-base notranslate" translate="no">
+            <div class="Z1-AJ" style="top: 0px; left: 0px;"></div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

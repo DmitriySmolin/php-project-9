@@ -94,7 +94,9 @@ class UrlDatabaseManager
 
     public function getAllUrls()
     {
-        $sqlQuery = "SELECT * FROM urls ORDER BY created_at DESC";
+        $sqlQuery = "SELECT urls.name, urls.id, MAX(url_checks.created_at) AS created_at, url_checks.status_code 
+        FROM urls LEFT JOIN url_checks ON urls.id = url_checks.url_id
+        GROUP BY (urls.name, urls.id, url_checks.status_code);";
         $statement = $this->pdoInstance->query($sqlQuery);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
