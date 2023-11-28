@@ -34,11 +34,11 @@
                 <form action="/urls" method="post" class="row">
                     <div class="col-8">
                         <?php if ($errors): ?>
-                            <input type="text" name="urls[name]" class="form-control form-control-lg is-invalid"
+                            <input type="text" name="url[name]" class="form-control form-control-lg is-invalid"
                                    placeholder="https://www.example.com">
                             <div class="invalid-feedback">Некорректный URL</div>
                         <?php else: ?>
-                            <input type="text" name="urls[name]" class="form-control form-control-lg"
+                            <input type="text" name="url[name]" class="form-control form-control-lg"
                                    placeholder="https://www.example.com">
                         <?php endif ?>
                     </div>
