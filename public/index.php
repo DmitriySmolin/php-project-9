@@ -50,7 +50,7 @@ $app->get('/', function ($req, $res) use ($tableManager) {
 
 $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
 
-    $urls = $req->getParsedBodyParam('urls');
+    $urls = $req->getParsedBodyParam('url');
     $validator = new Validator($urls);
     $validator->rules([
         'required' => ['name'],
@@ -59,7 +59,9 @@ $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
     ]);
 
     if (!$validator->validate()) {
-        $params = ['errors' => true];
+        $params = [
+            'errors' => $urls['name']
+        ];
         return $this->get('renderer')->render($res->withStatus(422), 'index.phtml', $params);
     }
 
@@ -76,7 +78,7 @@ $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
     $this->get('flash')->addMessage('success', $flashMessage);
 
     $id = $tableManager->getUrlByName($urlName);
-    $url = $router->urlFor('urls', ['id' => $id]);
+    $url = $router->urlFor('url', ['id' => $id]);
 
     return $res->withRedirect($url);
 });
