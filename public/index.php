@@ -69,7 +69,7 @@ $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
     $flashMessage = 'Страница уже существует';
 
     if (!$tableManager->urlExists($urlName)) {
-        $flashMessage = 'Страница созданна';
+        $flashMessage = 'Страница успешно добавлена';
         $tableManager->insertUrl($urlName);
     }
 
