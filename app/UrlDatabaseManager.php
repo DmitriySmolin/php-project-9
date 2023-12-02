@@ -105,22 +105,21 @@ class UrlDatabaseManager
     /**
      * @throws InvalidSelectorException
      */
-    public function insertCheckUrl(int $urlId, object $resUrl): void
+    public function insertCheckUrl(int $urlId, array $responseData): void
     {
         $currentDateTime = Carbon::now();
 
         $sql = "INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) 
-        VALUES (:url_id, :status_code, :h1, :title, :description, :created_at)";
+            VALUES (:url_id, :status_code, :h1, :title, :description, :created_at)";
         $statement = $this->pdoInstance->prepare($sql);
 
-        $statusCode = $resUrl->getStatusCode();
-        $body = $resUrl->getBody()->getContents();
+        $statusCode = $responseData['statusCode'];
+        $body = $responseData['body'];
         $document = new Document($body);
 
-        $h1 = $document->has('h1') ? $document->find('h1')[0]->text() : null;
-        $title = $document->has('title') ? $document->find('title')[0]->text() : null;
-        $description = $document->has('meta[name=description]')
-            ? $document->find('meta[name=description]')[0]->getAttribute('content') : null;
+        $h1 = $this->getTextContentIfExists($document, 'h1');
+        $title = $this->getTextContentIfExists($document, 'title');
+        $description = $this->getMetaDescriptionIfExists($document);
 
         $statement->execute([
             ':description' => $description,
@@ -131,6 +130,25 @@ class UrlDatabaseManager
             ':created_at' => $currentDateTime,
         ]);
     }
+
+    /**
+     * @throws InvalidSelectorException
+     */
+    private function getTextContentIfExists(Document $document, string $tag): ?string
+    {
+        $elements = $document->find($tag);
+        return $elements ? $elements[0]->text() : null;
+    }
+
+    /**
+     * @throws InvalidSelectorException
+     */
+    private function getMetaDescriptionIfExists(Document $document): ?string
+    {
+        $metaDescription = $document->find('meta[name=description]');
+        return $metaDescription ? $metaDescription[0]->getAttribute('content') : null;
+    }
+
 
     public function getCheckUrlById(int $id): bool|array
     {

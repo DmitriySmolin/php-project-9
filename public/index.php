@@ -115,7 +115,9 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
 
     try {
         $response = $client->request('GET', $urlName);
-        $tableManager->insertCheckUrl($id, $response);
+        $statusCode = $response->getStatusCode();
+        $body = $response->getBody()->getContents();
+        $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (ClientException $e) {
         $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
