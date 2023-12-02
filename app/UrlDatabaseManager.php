@@ -4,6 +4,7 @@ namespace Database;
 
 use Carbon\Carbon;
 use DiDom\Document;
+use DiDom\Exceptions\InvalidSelectorException;
 use Exception;
 use PDO;
 
@@ -12,7 +13,7 @@ use PDO;
  */
 class UrlDatabaseManager
 {
-    private $pdoInstance;
+    private PDO $pdoInstance;
 
     public function __construct(PDO $pdoInstance)
     {
@@ -101,7 +102,10 @@ class UrlDatabaseManager
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function insertCheckUrl(int $urlId, $resUrl): void
+    /**
+     * @throws InvalidSelectorException
+     */
+    public function insertCheckUrl(int $urlId, object $resUrl): void
     {
         $currentDateTime = Carbon::now();
 
@@ -116,8 +120,7 @@ class UrlDatabaseManager
         $h1 = $document->has('h1') ? $document->find('h1')[0]->text() : null;
         $title = $document->has('title') ? $document->find('title')[0]->text() : null;
         $description = $document->has('meta[name=description]')
-            ? $document->find('meta[name=description]')[0]
-                ->attr('content') : null;
+            ? $document->find('meta[name=description]')[0]->getAttribute('content') : null;
 
         $statement->execute([
             ':description' => $description,
