@@ -14,7 +14,7 @@ class UrlDatabaseManager
 {
     private $pdoInstance;
 
-    public function __construct($pdoInstance)
+    public function __construct(PDO $pdoInstance)
     {
         $this->pdoInstance = $pdoInstance;
     }
@@ -49,14 +49,14 @@ class UrlDatabaseManager
         return $this;
     }
 
-    public function insertUrl($urlName): void
+    public function insertUrl(string $urlName): void
     {
         $currentDateTime = Carbon::now();
         $sqlQuery = 'INSERT INTO urls (name, created_at) VALUES (:name, :created_at)';
         $this->pdoInstance->prepare($sqlQuery)->execute([':name' => $urlName, ':created_at' => $currentDateTime]);
     }
 
-    public function tableExists($tableName): bool
+    public function tableExists(string $tableName): bool
     {
         try {
             $queryResult = $this->pdoInstance->query("SELECT 1 FROM {$tableName} LIMIT 1");
@@ -67,7 +67,7 @@ class UrlDatabaseManager
         return $queryResult !== false;
     }
 
-    public function urlExists($name): bool
+    public function urlExists(string $name): bool
     {
         $sqlQuery = 'SELECT * FROM urls WHERE name = :name';
         $statement = $this->pdoInstance->prepare($sqlQuery);
@@ -75,7 +75,7 @@ class UrlDatabaseManager
         return $statement->rowCount() > 0;
     }
 
-    public function getUrlByName($urlName): mixed
+    public function getUrlByName(string $urlName): mixed
     {
         $sqlQuery = 'SELECT id FROM urls WHERE name = :name';
         $statement = $this->pdoInstance->prepare($sqlQuery);
@@ -84,7 +84,7 @@ class UrlDatabaseManager
         return $result ? $result['id'] : null;
     }
 
-    public function getUrlById($id)
+    public function getUrlById(int $id): mixed
     {
         $sqlQuery = "SELECT * FROM urls WHERE id = :id";
         $statement = $this->pdoInstance->prepare($sqlQuery);
@@ -92,7 +92,7 @@ class UrlDatabaseManager
         return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getAllUrls()
+    public function getAllUrls(): bool|array
     {
         $sqlQuery = "SELECT urls.name, urls.id, MAX(url_checks.created_at) AS created_at, url_checks.status_code 
         FROM urls LEFT JOIN url_checks ON urls.id = url_checks.url_id
@@ -101,7 +101,7 @@ class UrlDatabaseManager
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function insertCheckUrl($urlId, $resUrl): void
+    public function insertCheckUrl(int $urlId, $resUrl): void
     {
         $currentDateTime = Carbon::now();
 
@@ -129,7 +129,7 @@ class UrlDatabaseManager
         ]);
     }
 
-    public function getCheckUrlById($id)
+    public function getCheckUrlById(int $id): bool|array
     {
         $sql = "SELECT * FROM url_checks WHERE url_id = :id
         ORDER BY url_checks.id DESC";

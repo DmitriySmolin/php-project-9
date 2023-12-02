@@ -27,9 +27,16 @@ class DatabaseConnection
      */
     private function getConnectionStringFromEnv(): string
     {
-        $databaseUrl = parse_url($_ENV['DATABASE_URL']);
+        $databaseUrl = parse_url((string)$_ENV['DATABASE_URL']);
 
-        if ($databaseUrl === false) {
+        if (
+            !$databaseUrl || !isset(
+                $databaseUrl['host'],
+                $databaseUrl['path'],
+                $databaseUrl['user'],
+                $databaseUrl['pass']
+            )
+        ) {
             throw new Exception("Invalid DATABASE_URL format: " . $_ENV['DATABASE_URL']);
         }
 
