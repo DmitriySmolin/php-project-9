@@ -137,7 +137,7 @@ class UrlDatabaseManager
     private function getTextContentIfExists(Document $document, string $tag): ?string
     {
         $elements = $document->find($tag);
-        return $elements ? $elements[0]->text() : null;
+        return $elements ? $elements[0]?->text() : null;
     }
 
     /**
