@@ -138,7 +138,7 @@ class UrlDatabaseManager
     {
         $elements = $document->find($tag);
 
-        if ($elements && count($elements) > 0) {
+        if ($elements) {
             $firstElement = $elements[0];
 
             if (method_exists($firstElement, 'text')) {
