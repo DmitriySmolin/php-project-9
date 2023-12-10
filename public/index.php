@@ -1,7 +1,8 @@
 <?php
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Flash\Messages;
@@ -9,6 +10,7 @@ use Slim\Views\PhpRenderer;
 use Database\DatabaseConnection;
 use Database\UrlDatabaseManager;
 use Valitron\Validator;
+use Slim\Middleware\MethodOverrideMiddleware;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -27,7 +29,14 @@ $container->set('flash', function () {
 });
 
 $app = AppFactory::createFromContainer($container);
-$app->addErrorMiddleware(true, true, true);
+$app->add(MethodOverrideMiddleware::class);
+$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+
+$customErrorHandler = function () use ($app) {
+    $req = $app->getResponseFactory()->createResponse();
+    return $this->get('renderer')->render($req, "404.phtml");
+};
+$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $router = $app->getRouteCollector()->getRouteParser();
 session_start();
@@ -52,20 +61,23 @@ $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
 
     $urls = $req->getParsedBodyParam('url');
     $validator = new Validator($urls);
-    $validator->rules([
-        'required' => ['name'],
-        'lengthMax' => [['name', 255]],
-        'url' => ['name']
-    ]);
+    $validator->rule('required', 'name')->message('URL не должен быть пустым');
+    $validator->rule('url', 'name')->message('Некорректный URL');
+    $validator->rule('lengthMax', 'name', 255)->message('Некорректный URL');
+
 
     if (!$validator->validate()) {
+        $errors = $validator->errors();
         $params = [
-            'errors' => $urls['name']
+            'url' => $urls['name'],
+            'errors' => $errors,
+            'invalidForm' => 'is-invalid'
         ];
         return $this->get('renderer')->render($res->withStatus(422), 'index.phtml', $params);
     }
 
-    $parsedUrl = parse_url($urls['name']);
+    $url = strtolower($urls['name']);
+    $parsedUrl = parse_url($url);
     $urlName = "{$parsedUrl["scheme"]}://{$parsedUrl["host"]}";
 
     $flashMessage = 'Страница уже существует';
@@ -99,10 +111,23 @@ $app->get('/urls/{id}', function ($req, $res, array $args) use ($tableManager) {
     $dataChecks = $tableManager->getCheckUrlById($id);
 
     $messages = $this->get('flash')->getMessages();
+    $alert = '';
+    switch (key($messages)) {
+        case 'success':
+            $alert = 'success';
+            break;
+        case 'error':
+            $alert = 'warning';
+            break;
+        case 'danger':
+            $alert = 'danger';
+            break;
+    }
     $params = [
         'url' => $url,
         'flash' => $messages,
-        'checks' => $dataChecks
+        'checks' => $dataChecks,
+        'alert' => $alert
     ];
     return $this->get('renderer')->render($res, 'url.phtml', $params);
 })->setName('url');
@@ -119,8 +144,14 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
         $body = $response->getBody()->getContents();
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-    } catch (ClientException $e) {
-        $this->get('flash')->addMessage('error', 'Ошибка при проверке страницы');
+    } catch (RequestException $e) {
+        $res = $e->getResponse();
+        $this->get('flash')->clearMessages();
+        $errorMessage = 'Проверка была выполнена успешно, но сервер ответил c ошибкой';
+        $this->get('flash')->addMessage('error', $errorMessage);
+    } catch (ConnectException $e) {
+        $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
+        $this->get('flash')->addMessage('danger', $errorMessage);
     }
     $url = $router->urlFor('url', ['id' => $id]);
     return $res->withRedirect($url, 302);

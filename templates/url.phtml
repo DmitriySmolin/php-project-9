@@ -23,10 +23,10 @@
             </ul>
         </div>
     </nav>
-    <?php if (count($flash) > 0): ?>
+    <?php if (count($flash) > 0) : ?>
         <?php foreach ($flash as $messages) : ?>
             <?php foreach ($messages as $message) : ?>
-                <div class="alert alert-success" role="alert"><?= $message ?></div>
+                <div class="alert alert-<?= $alert ?>" role="alert"><?= $message ?></div>
             <?php endforeach ?>
         <?php endforeach ?>
     <?php endif ?>
@@ -56,7 +56,7 @@
         <form action="/urls/<?= $url['id'] ?>/checks" method="post">
             <input type="submit" class="btn btn-primary" value="Запустить проверку">
         </form>
-        <table class="table table-bordered table-hover" data-test="checks">
+        <table class="table table-bordered table-hover mt-3" data-test="checks">
             <tbody>
             <tr>
                 <th>ID</th>
