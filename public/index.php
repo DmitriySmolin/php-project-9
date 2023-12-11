@@ -32,11 +32,11 @@ $app = AppFactory::createFromContainer($container);
 $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-$customErrorHandler = function () use ($app) {
-    $req = $app->getResponseFactory()->createResponse();
-    return $this->get('renderer')->render($req, "404.phtml");
-};
-$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
+//$customErrorHandler = function () use ($app) {
+//    $req = $app->getResponseFactory()->createResponse();
+//    return $this->get('renderer')->render($req, "404.phtml");
+//};
+//$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $router = $app->getRouteCollector()->getRouteParser();
 session_start();
@@ -153,6 +153,7 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
         $this->get('flash')->addMessage('danger', $errorMessage);
     }
+
     $url = $router->urlFor('url', ['id' => $id]);
     return $res->withRedirect($url, 302);
 })->setName('checkUrl');
