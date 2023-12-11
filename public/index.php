@@ -3,9 +3,11 @@
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
+use http\Client\Response;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Flash\Messages;
+use Slim\Http\Interfaces\ResponseInterface;
 use Slim\Views\PhpRenderer;
 use Database\DatabaseConnection;
 use Database\UrlDatabaseManager;
@@ -145,13 +147,18 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $e) {
-        $res = $e->getResponse();
-        $this->get('flash')->clearMessages();
-        $errorMessage = 'Проверка была выполнена успешно, но сервер ответил c ошибкой';
-        $this->get('flash')->addMessage('error', $errorMessage);
+        $response = $e->getResponse();
+        $statusCode = $response ? $response->getStatusCode() : 500;
+        $this->get('flash')->addMessage('error', 'Произошла ошибка при попытке обращения к серверу');
+        if (!$res) {
+            $res = new Response($statusCode);
+        }
     } catch (ConnectException $e) {
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
         $this->get('flash')->addMessage('danger', $errorMessage);
+    }
+    if (!$res instanceof ResponseInterface) {
+        $res = new Response();
     }
 
     $url = $router->urlFor('url', ['id' => $id]);
