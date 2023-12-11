@@ -34,11 +34,11 @@ $app = AppFactory::createFromContainer($container);
 $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-//$customErrorHandler = function () use ($app) {
-//    $req = $app->getResponseFactory()->createResponse();
-//    return $this->get('renderer')->render($req, "404.phtml");
-//};
-//$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
+$customErrorHandler = function () use ($app) {
+    $req = $app->getResponseFactory()->createResponse();
+    return $this->get('renderer')->render($req, "404.phtml");
+};
+$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $router = $app->getRouteCollector()->getRouteParser();
 session_start();
