@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS urls
 (
     id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name varchar(255),
+    name varchar,
     created_at timestamp
 );
 
