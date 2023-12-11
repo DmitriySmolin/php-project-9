@@ -7,7 +7,6 @@ use http\Client\Response;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Flash\Messages;
-use Slim\Http\Interfaces\ResponseInterface;
 use Slim\Views\PhpRenderer;
 use Database\DatabaseConnection;
 use Database\UrlDatabaseManager;
@@ -34,11 +33,11 @@ $app = AppFactory::createFromContainer($container);
 $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-$customErrorHandler = function () use ($app) {
-    $req = $app->getResponseFactory()->createResponse();
-    return $this->get('renderer')->render($req, "404.phtml");
-};
-$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
+//$customErrorHandler = function () use ($app) {
+//    $req = $app->getResponseFactory()->createResponse();
+//    return $this->get('renderer')->render($req, "404.phtml");
+//};
+//$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $router = $app->getRouteCollector()->getRouteParser();
 session_start();
@@ -156,9 +155,6 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
     } catch (ConnectException $e) {
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
         $this->get('flash')->addMessage('danger', $errorMessage);
-    }
-    if (!$res instanceof ResponseInterface) {
-        $res = new Response();
     }
 
     $url = $router->urlFor('url', ['id' => $id]);
