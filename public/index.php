@@ -157,8 +157,10 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $e) {
         $response = $e->getResponse();
-        $statusCode = $response->getStatusCode();
-        $body = $response->getBody()->getContents();
+        if ($response instanceof Psr\Http\Message\ResponseInterface) {
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+        }
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
         $this->get('flash')->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
 

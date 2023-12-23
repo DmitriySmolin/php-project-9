@@ -123,8 +123,7 @@ class UrlDatabaseManager
 
         $h1 = $this->getTextContentIfExists($document, 'h1');
 
-
-        if (mb_strlen($h1, 'UTF-8') > $maxLength) {
+        if ($h1 !== null && mb_strlen($h1, 'UTF-8') > $maxLength) {
             $h1 = mb_substr($h1, 0, $maxLength  - $suffixLength, 'UTF-8') . $suffix;
         }
 
