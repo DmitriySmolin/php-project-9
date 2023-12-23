@@ -33,11 +33,17 @@ $app = AppFactory::createFromContainer($container);
 $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-//$customErrorHandler = function () use ($app) {
-//    $req = $app->getResponseFactory()->createResponse();
-//    return $this->get('renderer')->render($req, "404.phtml");
-//};
-//$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
+$customErrorHandler = function ($req, $e) use ($app) {
+
+    $res = $app->getResponseFactory()->createResponse();
+    if ($e->getCode() === 404) {
+        return $this->get('renderer')->render($res, "404.phtml")
+        ->withStatus(404);
+    }
+
+    return $res;
+};
+$errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $router = $app->getRouteCollector()->getRouteParser();
 session_start();
@@ -105,10 +111,14 @@ $app->get('/urls', function ($req, $res) use ($tableManager) {
     return $this->get('renderer')->render($res, 'urls.phtml', $params);
 })->setName('urls');
 
-$app->get('/urls/{id}', function ($req, $res, array $args) use ($tableManager) {
+$app->get('/urls/{id:[0-9]+}', function ($req, $res, array $args) use ($tableManager) {
 
     $id = $args['id'];
     $url = $tableManager->getUrlById($id);
+    if (empty($url)) {
+        return $this->get('renderer')->render($req, '404.phtml')
+            ->withStatus(404);
+    }
     $dataChecks = $tableManager->getCheckUrlById($id);
 
     $messages = $this->get('flash')->getMessages();
@@ -147,14 +157,18 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $e) {
         $response = $e->getResponse();
-        $statusCode = $response ? $response->getStatusCode() : 500;
-        $this->get('flash')->addMessage('error', 'Произошла ошибка при попытке обращения к серверу');
+        $statusCode = $response->getStatusCode();
+        $body = $response->getBody()->getContents();
+        $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
+        $this->get('flash')->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
+
         if (!$res) {
             $res = new Response($statusCode);
         }
     } catch (ConnectException $e) {
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
         $this->get('flash')->addMessage('danger', $errorMessage);
+        return $this->get('renderer')->render($res, '500.phtml')->withStatus(500);
     }
 
     $url = $router->urlFor('url', ['id' => $id]);

@@ -97,7 +97,8 @@ class UrlDatabaseManager
     {
         $sqlQuery = "SELECT urls.name, urls.id, MAX(url_checks.created_at) AS created_at, url_checks.status_code 
         FROM urls LEFT JOIN url_checks ON urls.id = url_checks.url_id
-        GROUP BY (urls.name, urls.id, url_checks.status_code);";
+        GROUP BY (urls.id, urls.name, urls.id, url_checks.status_code) 
+        ORDER BY urls.id;";
         $statement = $this->pdoInstance->query($sqlQuery);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -108,6 +109,9 @@ class UrlDatabaseManager
     public function insertCheckUrl(int $urlId, array $responseData): void
     {
         $currentDateTime = Carbon::now();
+        $maxLength = 255;
+        $suffix = '...';
+        $suffixLength = mb_strlen($suffix, 'UTF-8');
 
         $sql = "INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at) 
             VALUES (:url_id, :status_code, :h1, :title, :description, :created_at)";
@@ -118,6 +122,12 @@ class UrlDatabaseManager
         $document = new Document($body);
 
         $h1 = $this->getTextContentIfExists($document, 'h1');
+
+
+        if (mb_strlen($h1, 'UTF-8') > $maxLength) {
+            $h1 = mb_substr($h1, 0, $maxLength  - $suffixLength, 'UTF-8') . $suffix;
+        }
+
         $title = $this->getTextContentIfExists($document, 'title');
         $description = $this->getMetaDescriptionIfExists($document);
 
@@ -162,7 +172,7 @@ class UrlDatabaseManager
     public function getCheckUrlById(int $id): bool|array
     {
         $sql = "SELECT * FROM url_checks WHERE url_id = :id
-        ORDER BY url_checks.id DESC";
+        ORDER BY created_at DESC";
         $statement = $this->pdoInstance->prepare($sql);
         $statement->execute([':id' => $id]);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
