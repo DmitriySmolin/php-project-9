@@ -22,7 +22,9 @@ $tableManager = new UrlDatabaseManager($pdo);
 $container = new Container();
 $container->set('renderer', function () {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
-    return new PhpRenderer(__DIR__ . '/../templates');
+    $phpView = new PhpRenderer(__DIR__ . '/../templates');
+    $phpView->setLayout('layout.phtml');
+    return $phpView;
 });
 
 $container->set('flash', function () {
@@ -38,7 +40,7 @@ $customErrorHandler = function ($req, $e) use ($app) {
     $res = $app->getResponseFactory()->createResponse();
     if ($e->getCode() === 404) {
         return $this->get('renderer')->render($res, "404.phtml")
-        ->withStatus(404);
+            ->withStatus(404);
     }
 
     return $res;
@@ -115,8 +117,8 @@ $app->get('/urls/{id:[0-9]+}', function ($req, $res, array $args) use ($tableMan
 
     $id = $args['id'];
     $url = $tableManager->getUrlById($id);
-    if (empty($url)) {
-        return $this->get('renderer')->render($req, '404.phtml')
+    if (!$url) {
+        return $this->get('renderer')->render($res, '404.phtml')
             ->withStatus(404);
     }
     $dataChecks = $tableManager->getCheckUrlById($id);
@@ -172,7 +174,6 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
     } catch (ConnectException $e) {
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
         $this->get('flash')->addMessage('danger', $errorMessage);
-        return $this->get('renderer')->render($res, '500.phtml')->withStatus(500);
     }
 
     $url = $router->urlFor('url', ['id' => $id]);
