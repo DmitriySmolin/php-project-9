@@ -35,12 +35,16 @@ $app = AppFactory::createFromContainer($container);
 $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-$customErrorHandler = function ($req, $e) use ($app) {
+$customErrorHandler = function ($req, $e, $displayDebug) use ($app) {
 
     $res = $app->getResponseFactory()->createResponse();
     if ($e->getCode() === 404) {
         return $this->get('renderer')->render($res, "404.phtml")
             ->withStatus(404);
+    }
+
+    if ($displayDebug) {
+        throw $e;
     }
 
     return $res;
