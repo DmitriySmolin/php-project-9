@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use DiDom\Document;
 use DiDom\Exceptions\InvalidSelectorException;
 use Exception;
+use InvalidArgumentException;
 use PDO;
 
 /**
@@ -118,13 +119,16 @@ class UrlDatabaseManager
         $statement = $this->pdoInstance->prepare($sql);
 
         $statusCode = $responseData['statusCode'];
-        $body = $responseData['body'];
+        $body = $responseData['body'] ?? '';
+        if ($body === '') {
+            throw new InvalidArgumentException('HTML body is empty.');
+        }
         $document = new Document($body);
 
         $h1 = $this->getTextContentIfExists($document, 'h1');
 
         if ($h1 !== null && mb_strlen($h1, 'UTF-8') > $maxLength) {
-            $h1 = mb_substr($h1, 0, $maxLength  - $suffixLength, 'UTF-8') . $suffix;
+            $h1 = mb_substr($h1, 0, $maxLength - $suffixLength, 'UTF-8') . $suffix;
         }
 
         $title = $this->getTextContentIfExists($document, 'title');
