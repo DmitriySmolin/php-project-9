@@ -123,11 +123,7 @@ class UrlDatabaseManager
         if ($body === '') {
             throw new InvalidArgumentException('HTML body is empty.');
         }
-        $document = new Document();
-
-        if (!$document->load($body)) {
-            throw new InvalidArgumentException('Invalid HTML body.');
-        }
+        $document = new Document($body);
 
         $h1 = $this->getTextContentIfExists($document, 'h1');
 
