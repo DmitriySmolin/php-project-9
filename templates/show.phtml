@@ -27,7 +27,7 @@
             </table>
         </div>
         <h2 class="mt-5 mb-3">Проверки</h2>
-        <form action="/urls/<?= $url['id'] ?>/checks" method="post">
+        <form action="<?= $router->urlFor('url-checks', ['id' => $url['id']]) ?>" method="post">
             <input type="submit" class="btn btn-primary" value="Запустить проверку">
         </form>
         <table class="table table-bordered table-hover mt-3" data-test="checks">

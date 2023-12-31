@@ -20,9 +20,13 @@ $pdo = $database->getConnection();
 $tableManager = new UrlDatabaseManager($pdo);
 
 $container = new Container();
-$container->set('renderer', function () {
+$container->set('renderer', function () use ($container) {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
     $phpView = new PhpRenderer(__DIR__ . '/../templates');
+    $router = $container->get('router');
+
+    // Добавляем объект маршрутизатора в контекст шаблона
+    $phpView->addAttribute('router', $router);
     $phpView->setLayout('layout.phtml');
     return $phpView;
 });
@@ -52,6 +56,7 @@ $customErrorHandler = function ($req, $e, $displayDebug) use ($app) {
 $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
 $router = $app->getRouteCollector()->getRouteParser();
+$container->set('router', $app->getRouteCollector()->getRouteParser());
 session_start();
 
 $app->get('/', function ($req, $res) use ($tableManager) {
@@ -68,10 +73,10 @@ $app->get('/', function ($req, $res) use ($tableManager) {
     ];
 
     return $this->get('renderer')->render($res, 'index.phtml', $params);
-})->setName('home');
+})->setName('index');
 
-$app->post('/urls', function ($req, $res) use ($router, $tableManager) {
-
+$app->post('/urls', function ($req, $res) use ($tableManager) {
+    $router = $this->get('router');
     $urls = $req->getParsedBodyParam('url');
     $validator = new Validator($urls);
     $validator->rule('required', 'name')->message('URL не должен быть пустым');
@@ -89,7 +94,7 @@ $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
         return $this->get('renderer')->render($res->withStatus(422), 'index.phtml', $params);
     }
 
-    $url = strtolower($urls['name']);
+    $url = mb_strtolower($urls['name']);
     $parsedUrl = parse_url($url);
     $urlName = "{$parsedUrl["scheme"]}://{$parsedUrl["host"]}";
 
@@ -103,10 +108,10 @@ $app->post('/urls', function ($req, $res) use ($router, $tableManager) {
     $this->get('flash')->addMessage('success', $flashMessage);
 
     $id = $tableManager->getUrlByName($urlName);
-    $url = $router->urlFor('url', ['id' => $id]);
+    $url = $router->urlFor('show', ['id' => $id]);
 
     return $res->withRedirect($url);
-});
+})->setName('store');
 
 $app->get('/urls', function ($req, $res) use ($tableManager) {
 
@@ -128,31 +133,27 @@ $app->get('/urls/{id:[0-9]+}', function ($req, $res, array $args) use ($tableMan
     $dataChecks = $tableManager->getCheckUrlById($id);
 
     $messages = $this->get('flash')->getMessages();
-    $alert = '';
-    switch (key($messages)) {
-        case 'success':
-            $alert = 'success';
-            break;
-        case 'error':
-            $alert = 'warning';
-            break;
-        case 'danger':
-            $alert = 'danger';
-            break;
-    }
+
+    $alert = match (key($messages)) {
+        'success' => 'success',
+        'error' => 'warning',
+        'danger' => 'danger',
+        default => empty($messages) ? 'default' : throw new Error("Unknown messages: {key($messages)}!"),
+    };
+
     $params = [
         'url' => $url,
         'flash' => $messages,
         'checks' => $dataChecks,
         'alert' => $alert
     ];
-    return $this->get('renderer')->render($res, 'url.phtml', $params);
-})->setName('url');
+    return $this->get('renderer')->render($res, 'show.phtml', $params);
+})->setName('show');
 
-$app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tableManager, $router) {
-    $id = $args['url_id'];
+$app->post('/urls/{id}/checks', function ($req, $res, array $args) use ($tableManager) {
+    $id = $args['id'];
     $client = new Client();
-
+    $router = $this->get('router');
     $urlName = $tableManager->getUrlById($id)['name'];
 
     try {
@@ -180,8 +181,8 @@ $app->post('/urls/{url_id}/checks', function ($req, $res, array $args) use ($tab
         $this->get('flash')->addMessage('danger', $errorMessage);
     }
 
-    $url = $router->urlFor('url', ['id' => $id]);
+    $url = $router->urlFor('show', ['id' => $id]);
     return $res->withRedirect($url, 302);
-})->setName('checkUrl');
+})->setName('url-checks');
 
 $app->run();
