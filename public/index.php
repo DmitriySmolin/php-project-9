@@ -46,6 +46,11 @@ $customErrorHandler = function ($req, $e, $displayDebug) use ($app) {
         return $this->get('renderer')->render($res, "404.phtml")
             ->withStatus(404);
     }
+
+    if ($displayDebug) {
+        throw $e;
+    }
+
     return $res;
 };
 $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
