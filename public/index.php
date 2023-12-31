@@ -179,6 +179,8 @@ $app->post('/urls/{id}/checks', function ($req, $res, array $args) use ($tableMa
     } catch (ConnectException $e) {
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
         $this->get('flash')->addMessage('danger', $errorMessage);
+        $url = $router->urlFor('show', ['id' => $id]);
+        return $res->withRedirect($url, 302);
     }
 
     $url = $router->urlFor('show', ['id' => $id]);
