@@ -118,7 +118,7 @@ class UrlDatabaseManager
         $statement = $this->pdoInstance->prepare($sql);
 
         $statusCode = $responseData['statusCode'];
-        $body = $responseData['body'] ?? '';
+        $body = $responseData['body'] ?? 'default';
         $document = new Document($body);
 
         $h1 = $this->getTextContentIfExists($document, 'h1');
