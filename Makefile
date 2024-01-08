@@ -6,9 +6,9 @@ install:
 validate:
 	composer validate
 lint:
-	composer exec --verbose phpcs -- --standard=PSR12 app public/index.php
+	composer exec --verbose phpcs -- --standard=PSR12 app public/index.php phinx.php
 lint-fix:
-	composer exec --verbose phpcbf -- --standard=PSR12 app public/index.php
+	composer exec --verbose phpcbf -- --standard=PSR12 app public/index.php phinx.php
 migrate:
 	vendor/bin/phinx migrate
 rollback:
