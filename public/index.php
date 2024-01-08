@@ -171,9 +171,11 @@ $app->post('/urls/{id}/checks', function ($request, $response, array $args) {
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
         $flashMessages->addMessage('success', 'Страница успешно проверена');
     } catch (RequestException $exception) {
+        $statusCode = $exception->getCode();
+        $body = 'Ошибка: Нет ответа от сервера.';
         if ($exception->hasResponse()) {
-            $statusCode = $response->getStatusCode();
-            $body = $response->getBody()->getContents();
+            $statusCode = $exception->getResponse()->getStatusCode();
+            $body = $exception->getResponse()->getBody()->getContents();
         }
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
         $flashMessages->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
