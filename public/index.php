@@ -3,7 +3,6 @@
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
-use http\Client\Response;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Flash\Messages;
@@ -16,85 +15,92 @@ use Slim\Middleware\MethodOverrideMiddleware;
 require __DIR__ . '/../vendor/autoload.php';
 
 $database = new DatabaseConnection();
-$pdo = $database->getConnection();
-$tableManager = new UrlDatabaseManager($pdo);
-
 $container = new Container();
+
+$container->set('database_connection', function () {
+    return new DatabaseConnection();
+});
+
+$container->set('table_manager', function ($container) {
+    $databaseConnection = $container->get('database_connection');
+    $pdo = $databaseConnection->getConnection();
+    return new UrlDatabaseManager($pdo);
+});
+
 $container->set('renderer', function () use ($container) {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
     $phpView = new PhpRenderer(__DIR__ . '/../templates');
-    $router = $container->get('router');
 
     // Добавляем объект маршрутизатора в контекст шаблона
-    $phpView->addAttribute('router', $router);
+    $phpView->addAttribute('router', $container->get('router'));
     $phpView->setLayout('layout.phtml');
     return $phpView;
 });
+
 
 $container->set('flash', function () {
     return new Messages();
 });
 
 $app = AppFactory::createFromContainer($container);
+
+$app->add(function ($request, $handler) use ($container) {
+    $renderer = $container->get('renderer');
+    $renderer->addAttribute('currentPath', $request->getUri()->getPath());
+    return $handler->handle($request);
+});
+
 $app->add(MethodOverrideMiddleware::class);
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 
-$customErrorHandler = function ($req, $e, $displayDebug) use ($app) {
+$customErrorHandler = function ($request, $exception, $displayDebug) use ($app) {
 
-    $res = $app->getResponseFactory()->createResponse();
-    if ($e->getCode() === 404) {
-        return $this->get('renderer')->render($res, "404.phtml")
+    $response = $app->getResponseFactory()->createResponse();
+    if ($exception->getCode() === 404) {
+        return $this->get('renderer')->render($response, "404.phtml")
             ->withStatus(404);
     }
 
     if ($displayDebug) {
-        throw $e;
+        throw $exception;
     }
 
-    return $res;
+    return $response;
 };
+
 $errorMiddleware->setDefaultErrorHandler($customErrorHandler);
 
-$router = $app->getRouteCollector()->getRouteParser();
 $container->set('router', $app->getRouteCollector()->getRouteParser());
 session_start();
 
-$app->get('/', function ($req, $res) use ($tableManager) {
-
-    if (!$tableManager->tableExists('urls')) {
-        $tableManager->createUrlsTable();
-    }
-    if (!$tableManager->tableExists('url_checks')) {
-        $tableManager->createUrlChecksTable();
-    }
-
+$app->get('/', function ($request, $response) {
     $params = [
         'errors' => []
     ];
 
-    return $this->get('renderer')->render($res, 'index.phtml', $params);
+    return $this->get('renderer')->render($response, 'index.phtml', $params);
 })->setName('index');
 
-$app->post('/urls', function ($req, $res) use ($tableManager) {
+$app->post('/urls', function ($request, $response) {
+    $tableManager = $this->get('table_manager');
     $router = $this->get('router');
-    $urls = $req->getParsedBodyParam('url');
-    $validator = new Validator($urls);
-    $validator->rule('required', 'name')->message('URL не должен быть пустым');
-    $validator->rule('url', 'name')->message('Некорректный URL');
-    $validator->rule('lengthMax', 'name', 255)->message('Некорректный URL');
-
+    $url = $request->getParsedBodyParam('url');
+    $validator = new Validator($url);
+    $validator->rule('required', 'name')->message('URL не должен быть пустым')
+        ->rule('url', 'name')->message('Некорректный URL')
+        ->rule('lengthMax', 'name', 255)->message('URL не должен превышать 255 символов');
 
     if (!$validator->validate()) {
         $errors = $validator->errors();
         $params = [
-            'url' => $urls['name'],
+            'url' => $url['name'],
             'errors' => $errors,
             'invalidForm' => 'is-invalid'
         ];
-        return $this->get('renderer')->render($res->withStatus(422), 'index.phtml', $params);
+        return $this->get('renderer')->render($response->withStatus(422), 'index.phtml', $params);
     }
 
-    $url = mb_strtolower($urls['name']);
+    $url = mb_strtolower($url['name']);
     $parsedUrl = parse_url($url);
     $urlName = "{$parsedUrl["scheme"]}://{$parsedUrl["host"]}";
 
@@ -108,26 +114,26 @@ $app->post('/urls', function ($req, $res) use ($tableManager) {
     $this->get('flash')->addMessage('success', $flashMessage);
 
     $id = $tableManager->getUrlByName($urlName);
-    $url = $router->urlFor('show', ['id' => $id]);
+    $url = $router->urlFor('urls.show', ['id' => $id]);
 
-    return $res->withRedirect($url);
-})->setName('store');
+    return $response->withRedirect($url);
+})->setName('urls.create');
 
-$app->get('/urls', function ($req, $res) use ($tableManager) {
-
+$app->get('/urls', function ($request, $response) {
+    $tableManager = $this->get('table_manager');
     $urls = $tableManager->getAllUrls();
     $params = [
         'urls' => $urls
     ];
-    return $this->get('renderer')->render($res, 'urls.phtml', $params);
-})->setName('urls');
+    return $this->get('renderer')->render($response, 'urls.phtml', $params);
+})->setName('urls.index');
 
-$app->get('/urls/{id:[0-9]+}', function ($req, $res, array $args) use ($tableManager) {
-
+$app->get('/urls/{id:[0-9]+}', function ($request, $response, array $args) {
+    $tableManager = $this->get('table_manager');
     $id = $args['id'];
     $url = $tableManager->getUrlById($id);
     if (!$url) {
-        return $this->get('renderer')->render($res, '404.phtml')
+        return $this->get('renderer')->render($response, '404.phtml')
             ->withStatus(404);
     }
     $dataChecks = $tableManager->getCheckUrlById($id);
@@ -147,44 +153,39 @@ $app->get('/urls/{id:[0-9]+}', function ($req, $res, array $args) use ($tableMan
         'checks' => $dataChecks,
         'alert' => $alert
     ];
-    return $this->get('renderer')->render($res, 'show.phtml', $params);
-})->setName('show');
+    return $this->get('renderer')->render($response, 'show.phtml', $params);
+})->setName('urls.show');
 
-$app->post('/urls/{id}/checks', function ($req, $res, array $args) use ($tableManager) {
+$app->post('/urls/{id}/checks', function ($request, $response, array $args) {
+    $tableManager = $this->get('table_manager');
     $id = $args['id'];
     $client = new Client();
     $router = $this->get('router');
     $urlName = $tableManager->getUrlById($id)['name'];
+    $flashMessages = $this->get('flash');
 
     try {
-        $response = $client->request('GET', $urlName);
-        $statusCode = $response->getStatusCode();
-        $body = $response->getBody()->getContents();
+        $successResponse = $client->request('GET', $urlName);
+        $statusCode = $successResponse->getStatusCode();
+        $body = (string) $successResponse->getBody();
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
-        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
-    } catch (RequestException $e) {
-        $statusCode = null;
-        $body = '';
-        $response = $e->getResponse();
-        if ($response instanceof Psr\Http\Message\ResponseInterface) {
+        $flashMessages->addMessage('success', 'Страница успешно проверена');
+    } catch (RequestException $exception) {
+        if ($exception->hasResponse()) {
             $statusCode = $response->getStatusCode();
             $body = $response->getBody()->getContents();
         }
         $tableManager->insertCheckUrl($id, ['statusCode' => $statusCode, 'body' => $body]);
-        $this->get('flash')->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
-
-        if (!$res) {
-            $res = new Response($statusCode);
-        }
-    } catch (ConnectException $e) {
+        $flashMessages->addMessage('error', 'Проверка была выполнена успешно, но сервер ответил с ошибкой');
+    } catch (ConnectException) {
         $errorMessage = 'Произошла ошибка при проверке, не удалось подключиться';
-        $this->get('flash')->addMessage('danger', $errorMessage);
-        $url = $router->urlFor('show', ['id' => $id]);
-        return $res->withRedirect($url, 302);
+        $flashMessages->addMessage('danger', $errorMessage);
+        $url = $router->urlFor('urls.show', ['id' => $id]);
+        return $response->withRedirect($url, 302);
     }
 
-    $url = $router->urlFor('show', ['id' => $id]);
-    return $res->withRedirect($url, 302);
-})->setName('url-checks');
+    $url = $router->urlFor('urls.show', ['id' => $id]);
+    return $response->withRedirect($url, 302);
+})->setName('urls.checks.create');
 
 $app->run();

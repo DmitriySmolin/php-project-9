@@ -14,13 +14,15 @@
 <body class="min-vh-100 d-flex flex-column">
 <header>
     <nav class="navbar navbar-expand-md navbar-dark bg-dark px-3">
-        <a class="navbar-brand" href="<?=$router->urlFor('index')?>">Анализатор страниц</a>
+        <a class="navbar-brand" href="<?= $router->urlFor('index') ?>">Анализатор страниц</a>
         <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-                <a class="nav-link active" href="<?=$router->urlFor('index')?>">Главная</a>
-            </li>
             <li class="nav-item">
-                <a class="nav-link" href="<?=$router->urlFor('urls')?>">Сайты</a>
+                <a class="nav-link <?= $currentPath == '/' ? 'active' : '' ?>"
+                   href="<?= $router->urlFor('index') ?>">Главная</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link <?= $currentPath == '/urls' ? 'active' : '' ?>"
+                   href="<?= $router->urlFor('urls.index') ?>">Сайты</a>
             </li>
         </ul>
     </nav>

@@ -4,7 +4,7 @@
             <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
                 <h1 class="display-3">Анализатор страниц</h1>
                 <p class="lead">Бесплатно проверяйте сайты на SEO пригодность</p>
-                <form action="<?= $router->urlFor('store') ?>" method="post" class="row">
+                <form action="<?= $router->urlFor('urls.create') ?>" method="post" class="row">
                     <div class="col-8">
                         <input type="text" name="url[name]" value="<?= htmlspecialchars($url ?? '') ?>"
                                class="form-control form-control-lg <?= $invalidForm ?? '' ?>"
