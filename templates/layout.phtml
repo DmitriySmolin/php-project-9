@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,6 +28,15 @@
         </ul>
     </nav>
 </header>
+<?php if (count($flash) > 0) : ?>
+    <?php foreach ($flash as $messages) : ?>
+        <!--        --><?php //echo key($flash); ?>
+        <?php foreach ($messages as $key => $message) : ?>
+
+            <div class="alert alert-<?= key($flash) ?>" role="alert"><?= $message ?></div>
+        <?php endforeach ?>
+    <?php endforeach ?>
+<?php endif ?>
 <?= $content ?>
 <footer class="border-top py-3 mt-5 flex-shrink-0">
     <div class="container-lg">

@@ -37,7 +37,7 @@ class DatabaseConnection
                 $databaseUrl['pass']
             )
         ) {
-            throw new Exception("Invalid DATABASE_URL format: " . $_ENV['DATABASE_URL']);
+            throw new Exception("Invalid DATABASE_URL format");
         }
 
         return sprintf(
