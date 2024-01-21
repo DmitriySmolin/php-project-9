@@ -15,7 +15,7 @@ class Parser
     {
         $document = new Document($body);
 
-        $h1 = Str::limit(optional($document->first('h1'))->text(), 255);
+        $h1 = Str::limit(optional($document->first('h1'))->text() ?? '', 255);
         $title = optional($document->first('title'))->text();
         $description = optional($document->first('meta[name=description]'))->getAttribute('content');
 
