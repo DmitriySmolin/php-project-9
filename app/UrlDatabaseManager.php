@@ -86,7 +86,7 @@ class UrlDatabaseManager
     /**
      * @throws InvalidSelectorException
      */
-    public function insertCheckUrl(int $urlId, int $statusCode, string $body): void
+    public function insertCheckUrl(int $urlId, int $statusCode, array $body): void
     {
         $currentDateTime = Carbon::now();
 
@@ -94,16 +94,12 @@ class UrlDatabaseManager
             VALUES (:url_id, :status_code, :h1, :title, :description, :created_at)";
         $statement = $this->pdoInstance->prepare($sql);
 
-        if ($body === '') {
-            throw new InvalidArgumentException('HTML body is empty.');
-        }
 
-        $parsedData = Parser::parseHtml($body);
 
         $statement->execute([
-            ':description' => $parsedData['description'],
-            ':title' => $parsedData['title'],
-            ':h1' => $parsedData['h1'],
+            ':description' => $body['description'],
+            ':title' => $body['title'],
+            ':h1' => $body['h1'],
             ':url_id' => $urlId,
             ':status_code' => $statusCode,
             ':created_at' => $currentDateTime,

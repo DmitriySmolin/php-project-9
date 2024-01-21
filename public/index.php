@@ -5,6 +5,7 @@ use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
+use Parser\Parser;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use Slim\Flash\Messages;
@@ -150,12 +151,12 @@ $app->get('/urls/{id:[0-9]+}', function ($request, $response, array $args) {
     return $this->get('renderer')->render($response, 'urls/show.phtml', $params);
 })->setName('urls.show');
 
-$app->post('/urls/{id}/checks', function ($request, $response, array $args) {
+$app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, array $args) {
     $tableManager = $this->get('table_manager');
     $id = $args['id'];
     $client = new Client();
     $router = $this->get('router');
-    $urlName = $tableManager->getUrlById($id)['name'];
+    $urlName = $tableManager->getUrlById($id)['name'] ?? '';
     $flashMessages = $this->get('flash');
 
     try {
@@ -176,7 +177,13 @@ $app->post('/urls/{id}/checks', function ($request, $response, array $args) {
     $body = (string)$urlResponse->getBody();
     $statusCode = $urlResponse->getStatusCode();
 
-    $tableManager->insertCheckUrl($id, $statusCode, $body);
+    if ($body === '') {
+        throw new InvalidArgumentException('HTML body is empty.');
+    }
+
+    $parsedData = Parser::parseHtml($body);
+
+    $tableManager->insertCheckUrl($id, $statusCode, $parsedData);
 
     $url = $router->urlFor('urls.show', ['id' => $id]);
     return $response->withRedirect($url, 302);

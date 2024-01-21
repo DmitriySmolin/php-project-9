@@ -30,9 +30,7 @@
 </header>
 <?php if (count($flash) > 0) : ?>
     <?php foreach ($flash as $messages) : ?>
-        <!--        --><?php //echo key($flash); ?>
         <?php foreach ($messages as $key => $message) : ?>
-
             <div class="alert alert-<?= key($flash) ?>" role="alert"><?= $message ?></div>
         <?php endforeach ?>
     <?php endforeach ?>
