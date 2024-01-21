@@ -1,23 +1,25 @@
 <main class="flex-grow-1">
-    <div class="container mt-3">
-        <div class="row">
-            <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
-                <h1 class="display-3">Анализатор страниц</h1>
-                <p class="lead">Бесплатно проверяйте сайты на SEO пригодность</p>
-                <form action="<?= $router->urlFor('urls.create') ?>" method="post" class="row">
-                    <div class="col-8">
-                        <input type="text" name="url[name]" value="<?= htmlspecialchars($url ?? '') ?>"
-                               class="form-control form-control-lg <?= $invalidForm ?? '' ?>"
-                               placeholder="https://www.example.com">
-                        <?php if (isset($errors['name'])) : ?>
-                            <div class="invalid-feedback"><?= $errors['name'][0] ?></div>
-                        <?php endif ?>
-                    </div>
-                    <div class="col-2">
-                        <input type="submit" class="btn btn-primary btn-lg ms-3 px-5 text-uppercase mx-3"
-                               value="Проверить">
-                </form>
-            </div>
-        </div>
+    <div class="container-lg mt-3">
+        <h1>Сайты</h1>
+        <table class="table table-bordered table-hover text-nowrap" data-test="urls">
+            <tbody>
+            <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Последняя проверка</th>
+                <th>Код ответа</th>
+            </tr>
+            <?php foreach ($urls as $url): ?>
+                <tr>
+                    <td><?= $url['id'] ?? '' ?></td>
+                    <td>
+                        <a href="<?= $router->urlFor('urls.show', ['id' => $url['id']]) ?>"><?= $url['name'] ?? '' ?></a>
+                    </td>
+                    <td><?= $url['created_at'] ?? '' ?></td>
+                    <td><?= $url['status_code'] ?? '' ?></td>
+                </tr>
+            <?php endforeach ?>
+            </tbody>
+        </table>
     </div>
 </main>

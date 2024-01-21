@@ -80,7 +80,7 @@ $app->get('/', function ($request, $response) {
         'errors' => []
     ];
 
-    return $this->get('renderer')->render($response, 'urls/index.phtml', $params);
+    return $this->get('renderer')->render($response, 'index.phtml', $params);
 })->setName('index');
 
 $app->post('/urls', function ($request, $response) {
@@ -99,7 +99,7 @@ $app->post('/urls', function ($request, $response) {
             'errors' => $errors,
             'invalidForm' => 'is-invalid'
         ];
-        return $this->get('renderer')->render($response->withStatus(422), 'urls/index.phtml', $params);
+        return $this->get('renderer')->render($response->withStatus(422), 'index.phtml', $params);
     }
 
     $url = mb_strtolower($url['name']);
@@ -127,7 +127,7 @@ $app->get('/urls', function ($request, $response) {
     $params = [
         'urls' => $urls
     ];
-    return $this->get('renderer')->render($response, 'urls/urls.phtml', $params);
+    return $this->get('renderer')->render($response, 'urls/index.phtml', $params);
 })->setName('urls.index');
 
 $app->get('/urls/{id:[0-9]+}', function ($request, $response, array $args) {
